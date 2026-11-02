@@ -218,6 +218,40 @@
       gap: 12px;
     }
 
+    .lang-switcher {
+      display: inline-flex;
+      align-items: center;
+      background: var(--bg-accent-card);
+      border: 1px solid var(--color-border);
+      border-radius: 30px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-muted);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 24px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: var(--transition-smooth);
+    }
+
+    .lang-btn:hover {
+      color: var(--color-dark);
+    }
+
+    .lang-btn.active {
+      background: var(--color-gold);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(197, 160, 89, 0.35);
+    }
+
     .header-cta {
       background-color: var(--color-dark);
       color: #fff;
@@ -1355,10 +1389,9 @@
       }
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 580px) {
       .header-actions .header-cta {
-        padding: 9px 14px;
-        font-size: 11px;
+        display: none;
       }
       .logo {
         font-size: 22px;
@@ -1392,8 +1425,13 @@
       </nav>
 
       <div class="header-actions">
-        <button class="header-cta" onclick="openBookingModal('Бронирование даты в Monte Verde')">
-          <span>Забронировать дату</span>
+        <div class="lang-switcher" role="group" aria-label="Выбор языка">
+          <button type="button" class="lang-btn" data-lang="ky" onclick="setLanguage('ky')">КЫР</button>
+          <button type="button" class="lang-btn active" data-lang="ru" onclick="setLanguage('ru')">РУС</button>
+          <button type="button" class="lang-btn" data-lang="en" onclick="setLanguage('en')">ENG</button>
+        </div>
+        <button class="header-cta" id="headerCtaBtn" onclick="openBookingModal('Бронирование даты в Monte Verde')">
+          <span id="headerCtaText">Забронировать дату</span>
         </button>
         <button class="burger-btn" id="burgerBtn" aria-label="Меню" onclick="toggleMobileMenu()">
           <span></span><span></span><span></span>
@@ -1405,6 +1443,11 @@
   <!-- МОБИЛЬНОЕ МЕНЮ -->
   <div class="mobile-menu-overlay no-print" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
   <aside class="mobile-drawer no-print" id="mobileDrawer" aria-label="Мобильное меню">
+    <div class="lang-switcher" style="align-self:flex-start; margin-bottom:10px;" role="group" aria-label="Выбор языка">
+      <button type="button" class="lang-btn" data-lang="ky" onclick="setLanguage('ky')">КЫР</button>
+      <button type="button" class="lang-btn active" data-lang="ru" onclick="setLanguage('ru')">РУС</button>
+      <button type="button" class="lang-btn" data-lang="en" onclick="setLanguage('en')">ENG</button>
+    </div>
     <ul class="mobile-nav-list">
       <li><a href="#about" onclick="toggleMobileMenu()">О локации</a></li>
       <li><a href="#menu" onclick="toggleMobileMenu()">Банкетное меню с фото</a></li>
@@ -1415,9 +1458,9 @@
       <li><a href="#contacts" onclick="toggleMobileMenu()">Контакты</a></li>
     </ul>
     <div>
-      <p style="font-size: 12px; color: var(--color-muted);">Адрес в Бишкеке:</p>
-      <p style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">пр. Чингиза Айтматова (в здании отеля Jannat)</p>
-      <button class="header-cta" style="width: 100%; justify-content: center;" onclick="toggleMobileMenu(); openBookingModal('Заявка из мобильного меню')">
+      <p id="mobAddrLabel" style="font-size: 12px; color: var(--color-muted);">Адрес в Бишкеке:</p>
+      <p id="mobAddrVal" style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">пр. Чингиза Айтматова (в здании отеля Jannat)</p>
+      <button class="header-cta" id="mobCtaBtn" style="width: 100%; justify-content: center;" onclick="toggleMobileMenu(); openBookingModal('Заявка из мобильного меню')">
         Записаться на просмотр
       </button>
     </div>
@@ -2270,29 +2313,222 @@
       ]
     };
 
+    let currentLang = 'ru';
+    let currentMenuCategory = 'sets';
+
+    const I18N_UI = {
+      ru: {
+        docTitle: 'Банкетный зал Monte Verde в Бишкеке | Ресторан для свадьбы, тоя и Кыз Узатуу (до 350 гостей)',
+        soundMuted: '🔇 Включить звук',
+        soundUnmuted: '🔊 Звук включён',
+        currency: 'сом',
+        currencyShort: 'с.',
+        perTable: 'сом / стол',
+        addBtn: '+ В конструктор',
+        setTag: '[СЕТ НА СТОЛ]',
+        portionsTag: '[12 ПОРЦИЙ]',
+        pcs12: '12 порц.',
+        set1: '1 сет',
+        perGuestEst: (perG, t) => `~${perG.toLocaleString('ru-RU')} сом на 1 гостя • ${t} столов`,
+        tablesCount: (t, g) => `${t} столов (${g} чел.)`,
+        bonusIncluded: (ev, b) => `🎁 <strong>Бонус от 100 гостей (${ev}):</strong><br><span>${b} — БЕСПЛАТНО</span>`,
+        bonusNeedMore: (diff, b) => `💡 При заказе от 100 гостей (ещё +${diff} чел.) вы получите подарок: <em>${b}</em>`,
+        toastAdded: 'Блюдо добавлено в ваш конструктор стола!',
+        toastFurshet: 'Фуршетная позиция учтена (активирован пакет фуршета в конструкторе)!',
+        toastWhatsapp: 'Переходим в WhatsApp...',
+        toastPhoneErr: 'Введите полный номер телефона (+996 XXX XX-XX-XX)'
+      },
+      ky: {
+        docTitle: 'Monte Verde банкет залы Бишкек | Үйлөнүү той, Кыз узатуу жана мааракелер үчүн ресторан (350 конокко чейин)',
+        soundMuted: '🔇 Үнүн жандыруу',
+        soundUnmuted: '🔊 Үнү кошулду',
+        currency: 'сом',
+        currencyShort: 'с.',
+        perTable: 'сом / стол',
+        addBtn: '+ Дасторконго кошуу',
+        setTag: '[СТОЛГО СЕТ]',
+        portionsTag: '[12 ПОРЦИЯ]',
+        pcs12: '12 порц.',
+        set1: '1 сет',
+        perGuestEst: (perG, t) => `1 конокко ~${perG.toLocaleString('ru-RU')} сом • ${t} стол`,
+        tablesCount: (t, g) => `${t} стол (${g} конок)`,
+        bonusIncluded: (ev, b) => `🎁 <strong>100+ конокко белек (${ev}):</strong><br><span>${b} — АКЫСЫЗ</span>`,
+        bonusNeedMore: (diff, b) => `💡 100 коноктон баштап (дагы +${diff} конок) белек берилет: <em>${b}</em>`,
+        toastAdded: 'Тамак дасторкон конструкторуна кошулду!',
+        toastFurshet: 'Фуршет тандалды (конструктордо фуршет пакети кошулду)!',
+        toastWhatsapp: 'WhatsApp-ка өтүүдөбүз...',
+        toastPhoneErr: 'Телефон номериңизди толук жазыңыз (+996 XXX XX-XX-XX)'
+      },
+      en: {
+        docTitle: 'Monte Verde Banquet Hall in Bishkek | Premium Weddings & Events Venue (up to 350 guests)',
+        soundMuted: '🔇 Unmute video',
+        soundUnmuted: '🔊 Sound on',
+        currency: 'KGS',
+        currencyShort: 'KGS',
+        perTable: 'KGS / table',
+        addBtn: '+ Add to Table',
+        setTag: '[TABLE SET]',
+        portionsTag: '[12 PORTIONS]',
+        pcs12: '12 port.',
+        set1: '1 set',
+        perGuestEst: (perG, t) => `~${perG.toLocaleString('en-US')} KGS per guest • ${t} tables`,
+        tablesCount: (t, g) => `${t} tables (${g} guests)`,
+        bonusIncluded: (ev, b) => `🎁 <strong>100+ Guests Bonus (${ev}):</strong><br><span>${b} — FREE GIFT</span>`,
+        bonusNeedMore: (diff, b) => `💡 Book for 100+ guests (+${diff} more) to unlock your free gift: <em>${b}</em>`,
+        toastAdded: 'Dish added to your banquet table constructor!',
+        toastFurshet: 'Buffet item added (Welcome Buffet package enabled)!',
+        toastWhatsapp: 'Opening WhatsApp...',
+        toastPhoneErr: 'Please enter a valid phone number (+996 XXX XX-XX-XX)'
+      }
+    };
+
+    const EN_DISH_DICT = [
+      ['Сет «Баатыр»', '“Baatyr” Grand Meat Set'],
+      ['Рыбный сет премиум', 'Premium Fish & Seafood Set'],
+      ['Ассорти мясных стейков', 'Assorted Meat Steaks Platter'],
+      ['Сет «Ак Боз Уй»', '“Ak Boz Ui” National Set'],
+      ['Фирменный сет «Monte Verde»', 'Signature “Monte Verde” Set'],
+      ['Мясной ассорти сет (с Рибаем и Т-бон)', 'Assorted Meat Set (Ribeye & T-Bone)'],
+      ['Ассорти канапе (Фуршетный сет)', 'Assorted Canapés (Buffet Set)'],
+      ['Куриный сет №2', 'Chicken Banquet Set #2'],
+      ['Перепёлка запечённая с тыквой', 'Roasted Quail with Sweet Pumpkin'],
+      ['Куриный сет №1', 'Chicken Banquet Set #1'],
+      ['Мясной сет с перепёлками и люля', 'Quail & Lyulya Kebab Meat Set'],
+      ['Рулеты из баранины с картофелем', 'Lamb Rolls with Roasted Potatoes'],
+      ['Этно-фуршет (Пакет на 15+ персон)', 'Ethno Welcome Buffet (15+ guests)'],
+      ['Ассорти кавказских шашлыков', 'Caucasian BBQ Shashlik Assortment'],
+      ['Трио запечённой рыбы на стол', 'Baked Fish Trio for the Table'],
+      ['Праздничный сет плова с казы', 'Festive Plov Set with Horse Sausage (Kazy)'],
+      ['Роллы «Монте Верде»', '“Monte Verde” Signature Rolls'],
+      ['Суши-сет №1', 'Banquet Sushi Set #1'],
+      ['Суши-сет №2', 'Banquet Sushi Set #2'],
+      ['Рыбное плато «Люкс»', '“Luxe” Smoked & Cured Fish Platter'],
+      ['Рыбное ассорти', 'Assorted Fish Platter'],
+      ['Мясное ассорти «Монте Верде»', '“Monte Verde” Delicacy Meat Platter'],
+      ['Национальное мясное ассорти (Чучук, Казы)', 'Kyrgyz National Horsemeat & Beef Platter'],
+      ['Европейское сырное плато', 'European Artisanal Cheese Platter'],
+      ['Восточная закуска (Долма, чучук, казы)', 'Oriental Appetizer Platter'],
+      ['Кавказская закуска со свежими овощами', 'Fresh Vegetables & Caucasian Herbs Platter'],
+      ['Куриный рулет с курагой и черносливом', 'Chicken Roulade with Apricots & Prunes'],
+      ['Шпинатный рулет с творожным сыром и сёмгой', 'Spinach Roll with Salmon & Cream Cheese'],
+      ['Заливное из говяжьего языка', 'Beef Tongue Aspic'],
+      ['Рулетики из баклажанов с грецким орехом', 'Eggplant Rolls with Walnuts'],
+      ['Ассорти домашних солений и маринадов', 'Homemade Pickles & Marinated Vegetables'],
+      ['Свежая форель в соево-имбирном маринаде', 'Fresh Trout in Soy-Ginger Marinade'],
+      ['Запечённая форель с гранатом и лимоном', 'Baked Trout with Pomegranate & Lemon'],
+      ['Домашняя курица по-деревенски', 'Country-Style Whole Roasted Chicken'],
+      ['Королевская сёмга со спаржей', 'Royal Salmon Steak with Asparagus'],
+      ['Барашек на вертеле / Тоkтогул бешбармак', 'Spit-Roasted Lamb / Toktogul Beshbarmak'],
+      ['Каре ягнёнка на гриле', 'Grilled Rack of Lamb'],
+      ['Стейк «Рибай» с розмарином', 'Ribeye Steak with Rosemary'],
+      ['Медальоны из говяжьей вырезки', 'Beef Tenderloin Medallions'],
+      ['Стейк «День и Ночь»', '“Day & Night” Beef & Chicken Steak'],
+      ['Куриное филе в соусе манго-чили', 'Chicken Fillet in Mango-Chili Sauce'],
+      ['Куриный рулет в беконе с овощами', 'Stuffed Chicken Roll with Vegetables'],
+      ['Форель на гриле со сливочно-икорным соусом', 'Grilled Trout with Caviar Cream Sauce'],
+      ['Цыплёнок табака с чесночным соусом', 'Pan-Roasted Baby Chicken'],
+      ['Томлёные говяжьи рёбра в соусе демиглас', 'Slow-Braised Beef Ribs in Demi-Glace'],
+      ['Бешбармак по-кыргызски с казы и чучуком', 'Traditional Kyrgyz Beshbarmak with Kazy'],
+      ['Плов по-узбекски «Той Ош» с перепёлкой', 'Festive Uzbek “Toi Osh” Plov with Quail'],
+      ['Манты ручной лепки с рубленым мясом', 'Handmade Steamed Beef Manti'],
+      ['Долма в виноградных листьях', 'Stuffed Grape Leaves (Dolma)'],
+      ['Боорсоки пышные (1 кг в 2 места)', 'Traditional Puffy Boorsoks (1 kg)'],
+      ['Хлебная пирамида (7 лепёшек)', 'Festive Bread Pyramid (7 flatbreads)'],
+      ['Самса «Тюльпан» с рубленым мясом', '“Tulip” Flaky Meat Samsa'],
+      ['Самса с мясом', 'Baked Beef Samsa'],
+      ['Самса с курицей', 'Baked Chicken Samsa'],
+      ['Самса с брынзой и зеленью', 'Feta Cheese & Herbs Samsa'],
+      ['Самса с тыквой', 'Sweet Pumpkin Samsa'],
+      ['Чебуречки из говядины с грибами', 'Mini Beef & Mushroom Chebureks'],
+      ['Картофель по-деревенски', 'Country-Style Potato Wedges'],
+      ['Цветной праздничный рис «Лазер»', 'Festive “Lazer” Rice'],
+      ['Овощи на гриле', 'Chargrilled Vegetables'],
+      ['Овощи на пару (брокколи, цветная капуста)', 'Steamed Broccoli & Cauliflower']
+    ];
+
+    function translateDishTitle(item) {
+      if (currentLang === 'ru') return item.title;
+      if (currentLang === 'ky') {
+        const cleanKg = item.kg.replace(/СЕТ НА КОМПАНИЮ • 12 ПЕРСОН/g, '12 ПЕРСОНДУК СЕТ');
+        if (cleanKg && cleanKg !== item.title.toUpperCase() && !cleanKg.includes('САЛАТ #')) {
+          return cleanKg.charAt(0) + cleanKg.slice(1).toLowerCase() + ' (' + item.title + ')';
+        }
+        return item.title;
+      }
+      for (const [ru, en] of EN_DISH_DICT) {
+        if (item.title.includes(ru)) return en;
+      }
+      return item.title
+        .replace('Фирменный салат', 'Signature Salad')
+        .replace('Домашний салат', 'Homestyle Salad')
+        .replace('Тёплый салат', 'Warm Salad')
+        .replace('Хрустящий салат', 'Crispy Salad')
+        .replace('Салат', 'Salad')
+        .replace('Закуска', 'Appetizer')
+        .replace('Ассорти', 'Assortment')
+        .replace('Суп', 'Soup')
+        .replace('Шорпо', 'Traditional Broth (Shorpo)')
+        .replace('Десерт:', 'Dessert:')
+        .replace('Фуршет:', 'Buffet:')
+        .replace('Детское меню:', 'Kids Menu:');
+    }
+
+    function translateDishWeight(w) {
+      if (currentLang === 'ru') return w;
+      if (currentLang === 'ky') {
+        return w.replace('персон', 'конок').replace('Сет', 'Сет').replace('шт.', 'даана').replace('порция', 'порция');
+      }
+      return w
+        .replace('персон', 'guests')
+        .replace('кг', 'kg')
+        .replace(' г', ' g')
+        .replace('шт.', 'pcs')
+        .replace('Сет', 'Set')
+        .replace('порция', 'portion')
+        .replace('см', 'cm');
+    }
+
+    function translateDishDesc(desc) {
+      if (currentLang === 'ru') return desc;
+      if (currentLang === 'ky') {
+        return desc
+          .replace('Банкетная подача в расчёте на 1 стол.', '1 дасторконго эсептелген банкеттик тамак.')
+          .replace('Свежая авторская заправка и отборные ингредиенты.', 'Тандалган азыктар жана автордук соус менен.')
+          .replace('Классическая холодная закуска для праздничного стола.', 'Майрамдык дасторкон үчүн классикалык муздак закуска.');
+      }
+      return desc
+        .replace('Томлёные рёбра говядины, томлёные рёбра конины, печёный картофель, фруктовый салат, маринованный лук.', 'Slow-braised beef & horse ribs, roasted potatoes, fresh fruit salad, and pickled onions.')
+        .replace('Дорадо на гриле, королевские креветки, стейки из форели, жареное филе судака в кляре, запечённый картофель, цветная капуста, брокколи.', 'Grilled dorado, king prawns, trout steaks, crispy pike-perch fillet, roasted potatoes, cauliflower & broccoli.')
+        .replace('Нежные медальоны из говядины, стейки из форели, куриные ножки, седло барашка, утиное филе в клюквенном маринаде, дольки картофеля, баклажаны, кабачки.', 'Beef medallions, trout steaks, chicken drumsticks, saddle of lamb, duck breast in cranberry glaze, potato wedges & grilled vegetables.')
+        .replace('Стейки из говядины, филе курицы, седло барашка, стейки из форели, картофель кантри, овощи на гриле.', 'Beef steaks, chicken fillet, saddle of lamb, trout steaks, country potatoes, and grilled vegetables.')
+        .replace('Седло барашка, рулет из каре ягнёнка, мини-шашлычки, долма, перепёлка, мини-самса с брынзой, тюбетейка, овощи.', 'Saddle of lamb, lamb rack roll, mini skewers, dolma, roasted quail, mini feta samsa, and fresh vegetables.');
+    }
+
     /* Отрисовка каталога блюд с реальными фотографиями */
     function renderMenuCategory(catKey, btnEl) {
+      currentMenuCategory = catKey;
       if (btnEl) {
         document.querySelectorAll('#menuTabsBar .menu-cat-btn').forEach(b => b.classList.remove('active'));
         btnEl.classList.add('active');
       }
+      const ui = I18N_UI[currentLang];
       const grid = document.getElementById('catalogGrid');
       const items = MENU_DB[catKey] || [];
       grid.innerHTML = items.map(item => `
         <div class="dish-card">
           <div class="dish-img-box">
-            <img src="${item.img}" alt="${item.title} (${item.weight}) — банкетное меню ресторана Monte Verde Бишкек" loading="lazy" decoding="async">
-            <span class="dish-weight-pill">${item.weight}</span>
+            <img src="${item.img}" alt="${item.title} (${item.weight}) — Monte Verde Bishkek" loading="lazy" decoding="async">
+            <span class="dish-weight-pill">${translateDishWeight(item.weight)}</span>
           </div>
           <div class="dish-body">
             <div>
               <div class="dish-kyrgyz">${item.kg}</div>
-              <h3 class="dish-title">${item.title}</h3>
-              <p class="dish-desc">${item.desc}</p>
+              <h3 class="dish-title">${translateDishTitle(item)}</h3>
+              <p class="dish-desc">${translateDishDesc(item.desc)}</p>
             </div>
             <div class="dish-footer">
-              <span class="dish-price">${item.price.toLocaleString('ru-RU')} сом</span>
-              <button class="dish-add-btn" onclick="addDishToConstructor('${catKey}', '${item.id}')">+ В конструктор</button>
+              <span class="dish-price">${item.price.toLocaleString('ru-RU')} ${ui.currency}</span>
+              <button class="dish-add-btn" onclick="addDishToConstructor('${catKey}', '${item.id}')">${ui.addBtn}</button>
             </div>
           </div>
         </div>
@@ -2306,42 +2542,90 @@
     }
 
     /* Заполнение выпадающих списков конструктора */
-    function initConstructorSelects() {
-      const coldOptions = MENU_DB.cold.map(i => `<option value="${i.price}" data-name="${i.title} (${i.weight})">${i.title} — ${i.price.toLocaleString('ru-RU')} с.</option>`).join('');
+    function initConstructorSelects(preserveSelection = false) {
+      const ui = I18N_UI[currentLang];
+      const savedIdx = {};
+      if (preserveSelection) {
+        ['cold1','cold2','cold3','cold4','salad1','salad2','salad3','salad4','hot1','hot2','garnish1','soup1'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) savedIdx[id] = el.selectedIndex;
+        });
+      }
+
+      const coldOptions = MENU_DB.cold.map(i => {
+        const t = translateDishTitle(i);
+        const w = translateDishWeight(i.weight);
+        return `<option value="${i.price}" data-name="${t} (${w})">${t} — ${i.price.toLocaleString('ru-RU')} ${ui.currencyShort}</option>`;
+      }).join('');
       ['cold1', 'cold2', 'cold3', 'cold4'].forEach((id, idx) => {
         const el = document.getElementById(id);
         el.innerHTML = coldOptions;
-        el.selectedIndex = (idx * 2) % MENU_DB.cold.length;
+        el.selectedIndex = preserveSelection && savedIdx[id] >= 0 ? savedIdx[id] : (idx * 2) % MENU_DB.cold.length;
       });
 
-      const saladOptions = MENU_DB.salads.map(i => `<option value="${i.price}" data-name="${i.title}">${i.title} — ${i.price} с. (×3 = ${(i.price * 3).toLocaleString('ru-RU')} с.)</option>`).join('');
+      const saladOptions = MENU_DB.salads.map(i => {
+        const t = translateDishTitle(i);
+        return `<option value="${i.price}" data-name="${t}">${t} — ${i.price} ${ui.currencyShort} (×3 = ${(i.price * 3).toLocaleString('ru-RU')} ${ui.currencyShort})</option>`;
+      }).join('');
       ['salad1', 'salad2', 'salad3', 'salad4'].forEach((id, idx) => {
         const el = document.getElementById(id);
         el.innerHTML = saladOptions;
-        el.selectedIndex = (idx * 2) % MENU_DB.salads.length;
+        el.selectedIndex = preserveSelection && savedIdx[id] >= 0 ? savedIdx[id] : (idx * 2) % MENU_DB.salads.length;
       });
 
       const hotCombined = [
-        ...MENU_DB.sets.filter(s => s.price <= 20000).map(s => `<option value="${s.price}" data-qty="1 сет" data-name="${s.title} (${s.weight})">[СЕТ НА СТОЛ] ${s.title} — ${s.price.toLocaleString('ru-RU')} с.</option>`),
-        ...MENU_DB.hot.map(h => `<option value="${h.price * 12}" data-qty="12 порц." data-unit="${h.price}" data-name="${h.title}">[12 ПОРЦИЙ] ${h.title} (12 × ${h.price} с.) — ${(h.price * 12).toLocaleString('ru-RU')} с.</option>`)
+        ...MENU_DB.sets.filter(s => s.price <= 20000).map(s => {
+          const t = translateDishTitle(s);
+          const w = translateDishWeight(s.weight);
+          return `<option value="${s.price}" data-qty="${ui.set1}" data-name="${t} (${w})">${ui.setTag} ${t} — ${s.price.toLocaleString('ru-RU')} ${ui.currencyShort}</option>`;
+        }),
+        ...MENU_DB.hot.map(h => {
+          const t = translateDishTitle(h);
+          return `<option value="${h.price * 12}" data-qty="${ui.pcs12}" data-unit="${h.price}" data-name="${t}">${ui.portionsTag} ${t} (12 × ${h.price} ${ui.currencyShort}) — ${(h.price * 12).toLocaleString('ru-RU')} ${ui.currencyShort}</option>`;
+        })
       ].join('');
 
       document.getElementById('hot1').innerHTML = hotCombined;
-      document.getElementById('hot1').selectedIndex = 0; // Сет Баатыр 16 200 с.
+      document.getElementById('hot1').selectedIndex = preserveSelection && savedIdx.hot1 >= 0 ? savedIdx.hot1 : 0;
       document.getElementById('hot2').innerHTML = hotCombined;
-      document.getElementById('hot2').selectedIndex = 2; // Ассорти мясных стейков 13 200 с.
+      document.getElementById('hot2').selectedIndex = preserveSelection && savedIdx.hot2 >= 0 ? savedIdx.hot2 : 2;
 
-      document.getElementById('garnish1').innerHTML = `
-        <option value="0" data-name="Гарнир уже входит в банкетный сет" selected>Гарнир уже входит в сет — 0 сом</option>
-        <option value="380" data-name="Картофель по-деревенски (1 кг на стол)">Картофель по-деревенски (1 кг) — 380 сом</option>
-        <option value="520" data-name="Цветной рис Лазер (1 кг на стол)">Цветной рис Лазер (1 кг) — 520 сом</option>
-        <option value="520" data-name="Овощи на пару (1 кг на стол)">Овощи на пару (1 кг) — 520 сом</option>
-        <option value="650" data-name="Овощи на гриле (1 кг на стол)">Овощи на гриле (1 кг) — 650 сом</option>
-      `;
+      if (currentLang === 'ky') {
+        document.getElementById('garnish1').innerHTML = `
+          <option value="0" data-name="Гарнир сеттин ичине кирет" selected>Гарнир сеттин ичине кирет — 0 сом</option>
+          <option value="380" data-name="Айылча бышырылган картошка (1 кг)">Айылча картошка (1 кг) — 380 сом</option>
+          <option value="520" data-name="Түстүү Лазер күрүчү (1 кг)">Түстүү Лазер күрүчү (1 кг) — 520 сом</option>
+          <option value="520" data-name="Бууга бышкан жашылчалар (1 кг)">Бууга бышкан жашылчалар (1 кг) — 520 сом</option>
+          <option value="650" data-name="Грилде бышкан жашылчалар (1 кг)">Грилде бышкан жашылчалар (1 кг) — 650 сом</option>
+        `;
+      } else if (currentLang === 'en') {
+        document.getElementById('garnish1').innerHTML = `
+          <option value="0" data-name="Side dish included in banquet set" selected>Side dish included in set — 0 KGS</option>
+          <option value="380" data-name="Country-style potato wedges (1 kg)">Country-style potatoes (1 kg) — 380 KGS</option>
+          <option value="520" data-name="Festive Lazer rice (1 kg)">Festive Lazer rice (1 kg) — 520 KGS</option>
+          <option value="520" data-name="Steamed vegetables (1 kg)">Steamed vegetables (1 kg) — 520 KGS</option>
+          <option value="650" data-name="Chargrilled vegetables (1 kg)">Chargrilled vegetables (1 kg) — 650 KGS</option>
+        `;
+      } else {
+        document.getElementById('garnish1').innerHTML = `
+          <option value="0" data-name="Гарнир уже входит в банкетный сет" selected>Гарнир уже входит в сет — 0 сом</option>
+          <option value="380" data-name="Картофель по-деревенски (1 кг на стол)">Картофель по-деревенски (1 кг) — 380 сом</option>
+          <option value="520" data-name="Цветной рис Лазер (1 кг на стол)">Цветной рис Лазер (1 кг) — 520 сом</option>
+          <option value="520" data-name="Овощи на пару (1 кг на стол)">Овощи на пару (1 кг) — 520 сом</option>
+          <option value="650" data-name="Овощи на гриле (1 кг на стол)">Овощи на гриле (1 кг) — 650 сом</option>
+        `;
+      }
+      if (preserveSelection && savedIdx.garnish1 >= 0) document.getElementById('garnish1').selectedIndex = savedIdx.garnish1;
 
-      const soupOpts = `<option value="0" data-name="Без первого блюда" selected>Без шорпо / супа — 0 сом</option>` +
-        MENU_DB.soups.map(s => `<option value="${s.price * 12}" data-name="${s.title} (12 порц.)">${s.title} (12 × ${s.price} с.) — ${(s.price * 12).toLocaleString('ru-RU')} сом</option>`).join('');
+      const noSoupLabel = currentLang === 'ky' ? 'Биринчи тамаксыз / шорпосуз — 0 сом' : (currentLang === 'en' ? 'No first course / soup — 0 KGS' : 'Без шорпо / супа — 0 сом');
+      const noSoupData = currentLang === 'ky' ? 'Шорпосуз' : (currentLang === 'en' ? 'No soup' : 'Без первого блюда');
+      const soupOpts = `<option value="0" data-name="${noSoupData}" selected>${noSoupLabel}</option>` +
+        MENU_DB.soups.map(s => {
+          const t = translateDishTitle(s);
+          return `<option value="${s.price * 12}" data-name="${t} (${ui.pcs12})">${t} (12 × ${s.price} ${ui.currencyShort}) — ${(s.price * 12).toLocaleString('ru-RU')} ${ui.currency}</option>`;
+        }).join('');
       document.getElementById('soup1').innerHTML = soupOpts;
+      if (preserveSelection && savedIdx.soup1 >= 0) document.getElementById('soup1').selectedIndex = savedIdx.soup1;
     }
 
     /* Добавление блюда из каталога прямо в конструктор (все 7 категорий) */
@@ -2350,6 +2634,7 @@
     let hotPointer = 0;
 
     function addDishToConstructor(catKey, itemId) {
+      const ui = I18N_UI[currentLang];
       if (catKey === 'cold') {
         const selectId = ['cold1', 'cold2', 'cold3', 'cold4'][coldPointer % 4];
         const idx = MENU_DB.cold.findIndex(i => i.id === itemId);
@@ -2366,15 +2651,11 @@
         } else {
           const targetHotId = ['hot1', 'hot2'][hotPointer % 2];
           const el = document.getElementById(targetHotId);
-          const item = [...MENU_DB.sets, ...MENU_DB.hot].find(i => i.id === itemId);
-          if (item) {
-            for (let i = 0; i < el.options.length; i++) {
-              if (el.options[i].text.includes(item.title)) {
-                el.selectedIndex = i;
-                hotPointer++;
-                break;
-              }
-            }
+          const allHots = [...MENU_DB.sets.filter(s => s.price <= 20000), ...MENU_DB.hot];
+          const idx = allHots.findIndex(i => i.id === itemId);
+          if (idx >= 0 && idx < el.options.length) {
+            el.selectedIndex = idx;
+            hotPointer++;
           }
         }
       } else if (catKey === 'soups') {
@@ -2408,15 +2689,16 @@
       } else if (catKey === 'furshet') {
         document.getElementById('extEthno').checked = true;
         recalcContract();
-        showToast('Фуршетная позиция учтена (активирован пакет фуршета в конструкторе)!');
+        showToast(ui.toastFurshet);
         return;
       }
       recalcContract();
-      showToast('Блюдо добавлено в ваш конструктор стола!');
+      showToast(ui.toastAdded);
     }
 
     /* Пересчёт конструктора стола и заполнение печатного бланка договора */
     function recalcContract() {
+      const ui = I18N_UI[currentLang];
       const guests = Math.max(12, parseInt(document.getElementById('cGuests').value || 144, 10));
       const tables = Math.ceil(guests / 12);
 
@@ -2429,7 +2711,7 @@
         coldTableSum += val;
         return { num: idx + 1, name, qty: '1', unit: val, sum: val };
       });
-      document.getElementById('subColdSum').textContent = coldTableSum.toLocaleString('ru-RU') + ' сом / стол';
+      document.getElementById('subColdSum').textContent = coldTableSum.toLocaleString('ru-RU') + ' ' + ui.perTable;
 
       // 2. Салаты (4 × 3 на стол)
       let saladTableSum = 0;
@@ -2441,7 +2723,7 @@
         saladTableSum += sum;
         return { num: idx + 1, name, qty: '3', unit, sum };
       });
-      document.getElementById('subSaladSum').textContent = saladTableSum.toLocaleString('ru-RU') + ' сом / стол';
+      document.getElementById('subSaladSum').textContent = saladTableSum.toLocaleString('ru-RU') + ' ' + ui.perTable;
 
       // 3. Горячее 1, Горячее 2, Гарнир, Шорпо
       const h1Sel = document.getElementById('hot1');
@@ -2463,7 +2745,7 @@
       const soupName = soupSel.options[soupSel.selectedIndex]?.getAttribute('data-name') || '';
 
       const hotTableSum = h1Sum + h2Sum + garnSum + soupSum;
-      document.getElementById('subHotSum').textContent = hotTableSum.toLocaleString('ru-RU') + ' сом / стол';
+      document.getElementById('subHotSum').textContent = hotTableSum.toLocaleString('ru-RU') + ' ' + ui.perTable;
 
       // 4. Выпечка
       const boorsokVal = parseInt(document.getElementById('bakeryBoorsok').value || 0, 10);
@@ -2472,7 +2754,7 @@
       const samsaSum = samsaUnit * 12;
       const samsaName = document.getElementById('bakerySamsa').options[document.getElementById('bakerySamsa').selectedIndex]?.getAttribute('data-name') || '';
       const bakeryTableSum = boorsokVal + breadVal + samsaSum;
-      document.getElementById('subBakerySum').textContent = bakeryTableSum.toLocaleString('ru-RU') + ' сом / стол';
+      document.getElementById('subBakerySum').textContent = bakeryTableSum.toLocaleString('ru-RU') + ' ' + ui.perTable;
 
       // Итого за 1 стол и за все столы
       const oneTableTotal = coldTableSum + saladTableSum + hotTableSum + bakeryTableSum;
@@ -2502,29 +2784,29 @@
       const perGuest = Math.round(grandTotal / guests);
 
       // Обновляем правую колонку
-      document.getElementById('estGrandTotal').textContent = grandTotal.toLocaleString('ru-RU') + ' сом';
-      document.getElementById('estPerGuestText').textContent = `~${perGuest.toLocaleString('ru-RU')} сом на 1 гостя • ${tables} столов`;
-      document.getElementById('estOneTable').textContent = oneTableTotal.toLocaleString('ru-RU') + ' сом';
-      document.getElementById('estTablesCount').textContent = `${tables} столов (${guests} чел.)`;
-      document.getElementById('estMenuTotal').textContent = allTablesMenuTotal.toLocaleString('ru-RU') + ' сом';
-      document.getElementById('estExtrasTotal').textContent = extrasTotal.toLocaleString('ru-RU') + ' сом';
+      document.getElementById('estGrandTotal').textContent = grandTotal.toLocaleString('ru-RU') + ' ' + ui.currency;
+      document.getElementById('estPerGuestText').textContent = ui.perGuestEst(perGuest, tables);
+      document.getElementById('estOneTable').textContent = oneTableTotal.toLocaleString('ru-RU') + ' ' + ui.currency;
+      document.getElementById('estTablesCount').textContent = ui.tablesCount(tables, guests);
+      document.getElementById('estMenuTotal').textContent = allTablesMenuTotal.toLocaleString('ru-RU') + ' ' + ui.currency;
+      document.getElementById('estExtrasTotal').textContent = extrasTotal.toLocaleString('ru-RU') + ' ' + ui.currency;
 
       const p10 = Math.round(grandTotal * 0.10);
       const p30 = Math.round(grandTotal * 0.30);
       const p60 = grandTotal - p10 - p30;
-      document.getElementById('pay10').textContent = p10.toLocaleString('ru-RU') + ' сом';
-      document.getElementById('pay30').textContent = p30.toLocaleString('ru-RU') + ' сом';
-      document.getElementById('pay60').textContent = p60.toLocaleString('ru-RU') + ' сом';
+      document.getElementById('pay10').textContent = p10.toLocaleString('ru-RU') + ' ' + ui.currency;
+      document.getElementById('pay30').textContent = p30.toLocaleString('ru-RU') + ' ' + ui.currency;
+      document.getElementById('pay60').textContent = p60.toLocaleString('ru-RU') + ' ' + ui.currency;
 
       // Бонус от 100 гостей
       const activePill = document.querySelector('#eventPills .event-pill.active');
-      const eventName = activePill.getAttribute('data-event');
-      const bonusName = activePill.getAttribute('data-bonus');
+      const eventName = activePill.textContent.trim();
+      const bonusName = activePill.getAttribute('data-bonus-' + currentLang) || activePill.getAttribute('data-bonus');
       const bonusBox = document.getElementById('estBonusBox');
       if (guests >= 100) {
-        bonusBox.innerHTML = `🎁 <strong>Бонус от 100 гостей (${eventName}):</strong><br><span>${bonusName} — БЕСПЛАТНО</span>`;
+        bonusBox.innerHTML = ui.bonusIncluded(eventName, bonusName);
       } else {
-        bonusBox.innerHTML = `💡 При заказе от 100 гостей (ещё +${100 - guests} чел.) вы получите подарок: <em>${bonusName}</em>`;
+        bonusBox.innerHTML = ui.bonusNeedMore(100 - guests, bonusName);
       }
 
       // Заполняем печатный бланк договора
@@ -2533,7 +2815,7 @@
       const clientName = document.getElementById('cClientName').value.trim() || '____________________________';
       document.getElementById('pClient').textContent = clientName;
       document.getElementById('pClientSignName').textContent = clientName;
-      document.getElementById('pGuests').textContent = `${guests} гостей (${tables} столов по 12 чел.)`;
+      document.getElementById('pGuests').textContent = ui.tablesCount(tables, guests);
       document.getElementById('pPay10').textContent = p10.toLocaleString('ru-RU');
       document.getElementById('pPay30').textContent = p30.toLocaleString('ru-RU');
       document.getElementById('pPay100').textContent = grandTotal.toLocaleString('ru-RU');
@@ -2615,53 +2897,141 @@
       openWhatsApp(msg);
     }
 
-    /* Галерея залов */
-    const hallsData = [
-      {
-        tag: 'Главный банкетный зал',
-        title: 'Grand Hall «Monte Verde»',
-        desc: 'Величественный зал с высокими потолками, хрустальными люстрами, профессиональным сценическим комплексом и безупречной акустикой для масштабных свадеб и Кыз Узатуу.',
-        cap: '100 – 350 гостей',
-        height: '6 000 сом / чел.',
-        tech: 'LED + Свет + Звук ($650)',
-        bride: 'Номер на базе завтрака',
-        img: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80'
-      },
-      {
-        tag: 'Камерный формат',
-        title: 'Малый VIP-зал торжеств',
-        desc: 'Уютное приватное пространство для семейных юбилеев, кудалар, корпоративных ужинов и детских праздников Тушоо Той с аниматорами «Эль студио».',
-        cap: '30 – 80 гостей',
-        height: 'Гибкое меню',
-        tech: 'Акустика + Экраны',
-        bride: 'Отдельный лаунж-вход',
-        img: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80'
-      },
-      {
-        tag: 'Национальный колорит',
-        title: 'Зона Этно-фуршета & Welcome',
-        desc: 'Специальная фуршетная зона для встречи дорогих гостей: самсы с тыквой и брынзой, горячие боорсоки с каймаком, каттама, чак-чак, домашний тан, максым и жарма.',
-        cap: 'Пакет на 15+ персон',
-        height: '35 000 сом / сет',
-        tech: 'Фоновая музыка',
-        bride: 'Национальная сервировка',
-        img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80'
-      },
-      {
-        tag: 'Шоу & Техника (56 550 сом / $650)',
-        title: 'Сценический комплекс и LED-экран',
-        desc: 'Полный комплект оборудования: световое оборудование, концертная музыкальная аппаратура, яркий LED-экран, радиомикрофоны и техническое сопровождение.',
-        cap: 'Полное покрытие зала',
-        height: '56 550 сом ($650)',
-        tech: 'LED + Свет + Микрофоны',
-        bride: 'Тяжёлый дым и пузыри',
-        img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80'
-      }
-    ];
+    /* Галерея залов (3 языка) */
+    const hallsDataByLang = {
+      ru: [
+        {
+          tag: 'Главный банкетный зал',
+          title: 'Grand Hall «Monte Verde»',
+          desc: 'Величественный зал с высокими потолками, хрустальными люстрами, профессиональным сценическим комплексом и безупречной акустикой для масштабных свадеб и Кыз Узатуу.',
+          cap: '100 – 350 гостей',
+          height: '6 000 сом / чел.',
+          tech: 'LED + Свет + Звук ($650)',
+          bride: 'Номер на базе завтрака',
+          img: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Камерный формат',
+          title: 'Малый VIP-зал торжеств',
+          desc: 'Уютное приватное пространство для семейных юбилеев, кудалар, корпоративных ужинов и детских праздников Тушоо Той с аниматорами «Эль студио».',
+          cap: '30 – 80 гостей',
+          height: 'Гибкое меню',
+          tech: 'Акустика + Экраны',
+          bride: 'Отдельный лаунж-вход',
+          img: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Национальный колорит',
+          title: 'Зона Этно-фуршета & Welcome',
+          desc: 'Специальная фуршетная зона для встречи дорогих гостей: самсы с тыквой и брынзой, горячие боорсоки с каймаком, каттама, чак-чак, домашний тан, максым и жарма.',
+          cap: 'Пакет на 15+ персон',
+          height: '35 000 сом / сет',
+          tech: 'Фоновая музыка',
+          bride: 'Национальная сервировка',
+          img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Шоу & Техника (56 550 сом / $650)',
+          title: 'Сценический комплекс и LED-экран',
+          desc: 'Полный комплект оборудования: световое оборудование, концертная музыкальная аппаратура, яркий LED-экран, радиомикрофоны и техническое сопровождение.',
+          cap: 'Полное покрытие зала',
+          height: '56 550 сом ($650)',
+          tech: 'LED + Свет + Микрофоны',
+          bride: 'Тяжёлый дым и пузыри',
+          img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80'
+        }
+      ],
+      ky: [
+        {
+          tag: 'Башкы банкет залы',
+          title: 'Grand Hall «Monte Verde»',
+          desc: 'Бийик шыптуу, хрусталь люстралуу, кесипкөй сахна комплекси жана мыкты акустикасы бар чоң үйлөнүү тойлор жана Кыз узатуу үчүн салтанат залы.',
+          cap: '100 – 350 конок',
+          height: '6 000 сом / конок',
+          tech: 'LED + Жарык + Үн ($650)',
+          bride: 'Эртең мененки тамагы менен номер',
+          img: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Чакан формат',
+          title: 'Кичи VIP-зал',
+          desc: 'Үй-бүлөлүк мааракелер, куда тосуу, корпоративдик кечелер жана «Эль студио» аниматорлору менен Тушоо той өткөрүү үчүн ыңгайлуу зал.',
+          cap: '30 – 80 конок',
+          height: 'Ийкемдүү меню',
+          tech: 'Акустика + Экрандар',
+          bride: 'Өзүнчө лаунж-кирүү',
+          img: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Улуттук колорит',
+          title: 'Этно-фуршет & Welcome зонасы',
+          desc: 'Кадырлуу конокторду тосуп алуу үчүн атайын фуршет зонасы: ашкабак жана брынза кошулган самса, каймак менен ысык боорсок, каттама, чак-чак, максым жана жарма.',
+          cap: '15+ коноктук пакет',
+          height: '35 000 сом / сет',
+          tech: 'Фондук музыка',
+          bride: 'Улуттук дасторкон жасалгасы',
+          img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Шоу & Техника (56 550 сом / $650)',
+          title: 'Сахна комплекси жана LED-экран',
+          desc: 'Толук жабдуулар комплектиси: сахна жарыгы, концерттик музыкалык аппаратура, чоң LED-экран, радиомикрофондор жана техникалык коштоо.',
+          cap: 'Залды толук камтыйт',
+          height: '56 550 сом ($650)',
+          tech: 'LED + Жарык + Микрофондор',
+          bride: 'Оор түтүн жана көбүкчөлөр',
+          img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80'
+        }
+      ],
+      en: [
+        {
+          tag: 'Main Banquet Hall',
+          title: 'Grand Hall “Monte Verde”',
+          desc: 'Majestic grand hall featuring high ceilings, crystal chandeliers, concert-grade stage lighting, and flawless acoustics for grand weddings and Kyz Uzatuu.',
+          cap: '100 – 350 guests',
+          height: '6,000 KGS / guest',
+          tech: 'LED + Light + Sound ($650)',
+          bride: 'Bridal Suite w/ Breakfast',
+          img: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Intimate Format',
+          title: 'Private VIP Banquet Hall',
+          desc: 'Cozy private hall tailored for family anniversaries, Kudalar receptions, corporate dinners, and Tushoo Toi kids celebrations.',
+          cap: '30 – 80 guests',
+          height: 'Flexible Menu',
+          tech: 'Acoustics + Screens',
+          bride: 'Private Lounge Entrance',
+          img: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'National Heritage',
+          title: 'Ethno Buffet & Welcome Zone',
+          desc: 'Dedicated welcome zone for honored guests: flaky pumpkin & feta samsas, hot boorsoks with kaymak, kattama, chak-chak, tan, maksym, and jarma.',
+          cap: 'Package for 15+ guests',
+          height: '35,000 KGS / set',
+          tech: 'Ambient Music',
+          bride: 'Traditional Table Styling',
+          img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80'
+        },
+        {
+          tag: 'Show & Stage Tech (56,550 KGS / $650)',
+          title: 'Stage Complex & Giant LED Screen',
+          desc: 'Turnkey technical package: concert lighting rig, professional sound system, high-resolution LED wall, wireless microphones, and dedicated sound engineer.',
+          cap: 'Full Hall Coverage',
+          height: '56,550 KGS ($650)',
+          tech: 'LED + Lighting + Mics',
+          bride: 'Heavy Smoke & Bubbles',
+          img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80'
+        }
+      ]
+    };
+
     let currentHallIdx = 0;
     function selectHall(index) {
       currentHallIdx = index;
-      const item = hallsData[index];
+      const list = hallsDataByLang[currentLang] || hallsDataByLang.ru;
+      const item = list[index];
       const imgEl = document.getElementById('hallImage');
       imgEl.style.opacity = '0.3';
       setTimeout(() => { imgEl.src = item.img; imgEl.style.opacity = '1'; }, 150);
@@ -2674,8 +3044,8 @@
       document.getElementById('hallBride').textContent = item.bride;
       document.querySelectorAll('#hallTabs .gallery-tab').forEach((btn, idx) => btn.classList.toggle('active', idx === index));
     }
-    function nextHall() { selectHall((currentHallIdx + 1) % hallsData.length); }
-    function prevHall() { selectHall((currentHallIdx - 1 + hallsData.length) % hallsData.length); }
+    function nextHall() { selectHall((currentHallIdx + 1) % 4); }
+    function prevHall() { selectHall((currentHallIdx - 1 + 4) % 4); }
 
     /* Маска телефона +996 с очисткой неполного префикса при blur */
     function applyPhoneMask(input) {
@@ -2748,7 +3118,7 @@
       toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
     }
     function openWhatsApp(msg) {
-      showToast('Переходим в WhatsApp...');
+      showToast(I18N_UI[currentLang].toastWhatsapp);
       setTimeout(() => {
         window.open(`https://wa.me/${RESTAURANT_PHONE}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
       }, 350);
@@ -2757,7 +3127,7 @@
       const phone = document.getElementById('userPhone').value.trim();
       const digits = phone.replace(/\D/g, '');
       if (digits.length < 12) {
-        showToast('Введите полный номер телефона (+996 XXX XX-XX-XX)');
+        showToast(I18N_UI[currentLang].toastPhoneErr);
         document.getElementById('userPhone').focus();
         return;
       }
@@ -2769,7 +3139,7 @@
       const phone = document.getElementById('modalPhone').value.trim();
       const digits = phone.replace(/\D/g, '');
       if (digits.length < 12) {
-        showToast('Введите полный номер телефона (+996 XXX XX-XX-XX)');
+        showToast(I18N_UI[currentLang].toastPhoneErr);
         document.getElementById('modalPhone').focus();
         return;
       }
@@ -2804,14 +3174,229 @@
       }
       video.muted = !video.muted;
       if (btn) {
-        btn.innerHTML = video.muted ? '🔇 Включить звук' : '🔊 Звук включён';
+        const ui = I18N_UI[currentLang];
+        btn.innerHTML = video.muted ? ui.soundMuted : ui.soundUnmuted;
       }
+    }
+
+    /* Мультиязычный переключатель КЫР / РУС / ENG для всех секций сайта */
+    const DOM_TRANSLATIONS = [
+      // Навигация десктоп
+      { sel: '.nav-links li:nth-child(1) a', ky: 'Ресторан жөнүндө', en: 'About Venue' },
+      { sel: '.nav-links li:nth-child(2) a', ky: 'Сүрөттүү меню', en: 'Banquet Menu' },
+      { sel: '.nav-links li:nth-child(3) a', ky: 'Дасторкон конструктору', en: 'Table Calculator' },
+      { sel: '.nav-links li:nth-child(4) a', ky: 'Залдар', en: 'Halls' },
+      { sel: '.nav-links li:nth-child(5) a', ky: 'Шарттар', en: 'Terms' },
+      { sel: '.nav-links li:nth-child(6) a', ky: '100+ Бонустар', en: '100+ Bonuses' },
+      { sel: '.nav-links li:nth-child(7) a', ky: 'Байланыш', en: 'Contacts' },
+      // Навигация мобильная
+      { sel: '.mobile-nav-list li:nth-child(1) a', ky: 'Ресторан жөнүндө', en: 'About Venue' },
+      { sel: '.mobile-nav-list li:nth-child(2) a', ky: 'Сүрөттүү банкет менюсу', en: 'Banquet Menu with Photos' },
+      { sel: '.mobile-nav-list li:nth-child(3) a', ky: 'Дасторкон конструктору', en: 'Table Calculator & Estimate' },
+      { sel: '.mobile-nav-list li:nth-child(4) a', ky: 'Залдардын галереясы', en: 'Halls Gallery' },
+      { sel: '.mobile-nav-list li:nth-child(5) a', ky: 'Өткөрүү шарттары', en: 'Event Terms' },
+      { sel: '.mobile-nav-list li:nth-child(6) a', ky: '100+ конокко бонустар', en: 'Bonuses for 100+ Guests' },
+      { sel: '.mobile-nav-list li:nth-child(7) a', ky: 'Байланыш', en: 'Contacts' },
+      { sel: '#headerCtaText', ky: 'Күндү брондоо', en: 'Book a Date' },
+      { sel: '#mobAddrLabel', ky: 'Бишкектеги дарегибиз:', en: 'Address in Bishkek:' },
+      { sel: '#mobAddrVal', ky: 'Чыңгыз Айтматов пр. (Jannat мейманканасынын имаратында)', en: 'Chingiz Aitmatov Ave (inside Jannat Hotel)' },
+      { sel: '#mobCtaBtn', ky: 'Көрүүгө жазылуу', en: 'Schedule a Tour' },
+      // HERO
+      { sel: '.hero-floating-tag span:nth-child(2)', ky: 'Бишкек ш., Чыңгыз Айтматов пр. (Jannat мейманканасы)', en: 'Bishkek, Chingiz Aitmatov Ave (Jannat Hotel)' },
+      { sel: '.hero-caption-title', ky: 'Monte Verde салтанат залы', en: 'Monte Verde Banquet Hall' },
+      { sel: '.hero-media-caption p', ky: '100% Халал • Автордук ашкана, LED-экран, жарык шоу жана мыкты тейлөө', en: '100% Halal • Signature Cuisine, Giant LED Wall, Stage Lighting & 5-Star Service' },
+      { sel: '.tour-btn', ky: 'Дасторкон чогултуу →', en: 'Build Banquet Table →' },
+      { sel: '.hero-main-banner .section-badge', ky: 'Monte Verde • Бишкек • 100% Халал', en: 'Monte Verde • Bishkek • 100% Halal' },
+      { sel: '.hero-main-banner h1.section-title', html: true, ky: '<span class="initial-letter">Б</span>ишкектеги <br>банкет залы', en: '<span class="initial-letter">B</span>anquet Hall <br>in Bishkek' },
+      { sel: '.hero-subtitle', html: true, ky: 'Идеалдуу той дасторконун 2 мүнөттө онлайн чогултуп, <strong>100 коноктон өйдө белек алыңыз</strong>. Үйлөнүү той, Кыз узатуу, юбилей, Тушоо той жана бүтүрүү кечелерин беш жылдыздуу деңгээлде өткөрүңүз.', en: 'Build your custom banquet table online in 2 minutes and claim a <strong>free gift for 100+ guests</strong>. Luxury weddings, Kyz Uzatuu, anniversaries, Tushoo Toi, and galas with five-star comfort.' },
+      { sel: '#metricsCounter .metric-item:nth-child(1) .metric-val', ky: '350 конокко чейин', en: 'up to 350' },
+      { sel: '#metricsCounter .metric-item:nth-child(1) .metric-label', ky: 'банкет залынын сыйымдуулугу', en: 'banquet hall capacity' },
+      { sel: '#metricsCounter .metric-item:nth-child(2) .metric-val', ky: '10% / 30%', en: '10% / 30%' },
+      { sel: '#metricsCounter .metric-item:nth-child(2) .metric-label', ky: 'залды брондоо жана менюдан кийинки задаток', en: 'booking deposit & menu prepayment' },
+      { sel: '#metricsCounter .metric-item:nth-child(3) .metric-val', ky: '100% Халал', en: '100% Halal' },
+      { sel: '#metricsCounter .metric-item:nth-child(3) .metric-label', ky: 'өз суусундуктары жана торт үчүн акы алынбайт', en: 'bring your own drinks & cake (0 KGS corkage)' },
+      { sel: '#metricsCounter .metric-item:nth-child(4) .metric-val', ky: '119 тамак', en: '119 Dishes' },
+      { sel: '#metricsCounter .metric-item:nth-child(4) .metric-label', ky: 'чыныгы сүрөттөрү жана салмагы менен', en: 'with real photos & weights in menu' },
+      { sel: '.badge-cta-card .badge-title', ky: 'Залды көрүү жана меню түзүү', en: 'Venue Tour & Custom Menu Planning' },
+      { sel: '.badge-cta-card .badge-desc', ky: 'Залды көрсөтөбүз, ар бир столго (12 конок) жеке смета түзүп, күндү бекитебиз', en: 'We will show you the hall, calculate a per-table estimate (12 guests), and reserve your date' },
+      // КАТАЛОГ МЕНЮ
+      { sel: '#menu .section-badge', ky: '100% Халал • Тамактардын чыныгы сүрөттөрү жана салмагы', en: '100% Halal • Real Dish Photos & Portion Weights' },
+      { sel: '#menu h2.section-title', html: true, ky: '<span class="initial-letter">M</span>onte Verde гастрономиясы', en: '<span class="initial-letter">M</span>onte Verde Gastronomy' },
+      { sel: '#menu .reveal > p', html: true, ky: 'Бардык сүрөттөр, курамдар жана баалар расмий банкеттик каталогдон алынды. Тамакты дасторкон эсебине кошуу үчүн <strong>«+ Дасторконго кошуу»</strong> баскычын басыңыз.', en: 'All photos, ingredients, and prices come directly from our official banquet catalog. Click <strong>“+ Add to Table”</strong> to include any dish in your table estimate.' },
+      { sel: '#menuTabsBar button:nth-child(1)', ky: 'Компания үчүн сеттер (16)', en: 'Banquet Sharing Sets (16)' },
+      { sel: '#menuTabsBar button:nth-child(2)', ky: 'Муздак закускалар (26)', en: 'Cold Appetizers & Platters (26)' },
+      { sel: '#menuTabsBar button:nth-child(3)', ky: 'Автордук салаттар (27)', en: 'Signature & Homestyle Salads (27)' },
+      { sel: '#menuTabsBar button:nth-child(4)', ky: 'Негизги ысык тамактар (18)', en: 'Main Hot Courses (18)' },
+      { sel: '#menuTabsBar button:nth-child(5)', ky: 'Биринчи тамактар / Шорпо (8)', en: 'Soups & Traditional Shorpo (8)' },
+      { sel: '#menuTabsBar button:nth-child(6)', ky: 'Нан азыктары жана Гарнирлер (13)', en: 'Pastries, Samsa & Sides (13)' },
+      { sel: '#menuTabsBar button:nth-child(7)', ky: 'Фуршет, Балдар менюсу жана Десерт (11)', en: 'Buffet, Kids Menu & Desserts (11)' },
+      { sel: '.menu-sheets-strip .section-badge', ky: 'Менюнун оригинал барактары', en: 'Original Menu Sheets' },
+      { sel: '.menu-sheets-strip h3', ky: 'Банкеттик менюнун толук сканерленген барактарын көрүү', en: 'View Full Scanned Banquet Menu Pages' },
+      { sel: '.menu-sheets-strip p', ky: 'Толук өлчөмдө ачуу үчүн оң жактагы каалаган баракты басыңыз', en: 'Click any menu sheet on the right to inspect it in full resolution' },
+      // КОНСТРУКТОР СТОЛА
+      { sel: '#constructor .section-badge', ky: 'Онлайн-эсептөө (1 стол = 12 конок)', en: 'Online Calculator (1 Table = 12 Guests)' },
+      { sel: '#constructor h2.section-title', html: true, ky: '<span class="initial-letter">Д</span>асторкон жана смета конструктору', en: '<span class="initial-letter">T</span>able & Budget Constructor' },
+      { sel: '#constructor .reveal > p', ky: 'Бир столдун дасторконун чогултуңуз (4 муздак закуска, 3 тарелкадан 4 түрлүү салат, 2 ысык тамак же банкеттик сет, боорсок жана нан пирамидасы) — система бүткүл тойдун сметасын автоматтык түрдө эсептеп берет.', en: 'Customize one table (4 cold appetizers, 4 salads × 3 bowls, 2 hot courses or sharing sets, boorsoks, and bread pyramid) — the system automatically calculates your total banquet budget.' },
+      { sel: '.constructor-box .c-group:nth-child(1) .c-group-title span', ky: '1. Тойдун форматы жана буюртмачынын маалыматы', en: '1. Event Format & Guest Details' },
+      { sel: '.constructor-box .c-group:nth-child(1) .c-group-sub', ky: '100 коноктон баштап сиздин форматка ылайык белек автоматтык түрдө кошулат', en: 'Bookings of 100+ guests automatically unlock a free gift tailored to your event' },
+      { sel: '#eventPills .event-pill:nth-child(1)', ky: 'Үйлөнүү той', en: 'Wedding' },
+      { sel: '#eventPills .event-pill:nth-child(2)', ky: 'Кыз узатуу', en: 'Kyz Uzatuu' },
+      { sel: '#eventPills .event-pill:nth-child(3)', ky: 'Юбилей', en: 'Anniversary' },
+      { sel: '#eventPills .event-pill:nth-child(4)', ky: 'Тушоо той', en: 'Tushoo Toi' },
+      { sel: '#eventPills .event-pill:nth-child(5)', ky: 'Бүтүрүү кечеси', en: 'Graduation' },
+      { sel: '.constructor-box .c-group:nth-child(1) .slot-field:nth-child(1) label', ky: 'Коноктордун саны (1 столдо 12 киши)', en: 'Number of Guests (12 guests per table)' },
+      { sel: '.constructor-box .c-group:nth-child(1) .slot-field:nth-child(2) label', ky: 'Той өтүүчү күн', en: 'Event Date' },
+      { sel: '.constructor-box .c-group:nth-child(1) .slot-field:nth-child(3) label', ky: 'Буюртмачынын аты-жөнү', en: 'Client Full Name' },
+      { sel: '.constructor-box .c-group:nth-child(1) .slot-field:nth-child(4) label', ky: 'Телефон номери (+996)', en: 'Phone Number (+996)' },
+      { sel: '.constructor-box .c-group:nth-child(2) .c-group-title span:first-child', ky: '2. Столго муздак закускалар (4 түр × 1 даана)', en: '2. Cold Appetizers per Table (4 items × 1)' },
+      { sel: '.constructor-box .c-group:nth-child(2) .c-group-sub', ky: 'Ар бир столго коюлуучу 4 муздак закусканы тандаңыз', en: 'Select 4 cold platters served on each table' },
+      { sel: '.constructor-box .c-group:nth-child(3) .c-group-title span:first-child', ky: '3. Столго салаттар (4 түр × 3 порция = 12 салатник)', en: '3. Salads per Table (4 types × 3 bowls = 12 bowls)' },
+      { sel: '.constructor-box .c-group:nth-child(3) .c-group-sub', ky: 'Банкеттик стандарт боюнча ар бир тандалган салаттан столго 3 тарелкадан коюлат', en: 'Standard banquet service includes 3 bowls of each selected salad per table' },
+      { sel: '.constructor-box .c-group:nth-child(4) .c-group-title span:first-child', ky: '4. Ысык тамактар жана банкеттик сеттер (I жана II тамак)', en: '4. Main Hot Courses & Banquet Sets (1st & 2nd Course)' },
+      { sel: '.constructor-box .c-group:nth-child(4) .c-group-sub', ky: 'Столго чоң банкеттик сет (1 даана) же 12 конокко порциялык тамак тандасаңыз болот', en: 'Choose a large sharing set for the table or 12 individual portions' },
+      { sel: '.constructor-box .c-group:nth-child(5) .c-group-title span:first-child', ky: '5. Нан азыктары (Боорсок, Нан пирамидасы, Самса)', en: '5. Bakery & Pastries (Boorsoks, Bread Pyramid, Samsa)' },
+      { sel: '.constructor-box .c-group:nth-child(6) .c-group-title span:first-child', ky: '6. Кошумча кызматтар', en: '6. Additional Services' },
+      { sel: '.extras-list .extra-item:nth-child(1) span', html: true, ky: '<strong>Аппаратура ($650 / ~56 550 с.)</strong><br><small style="color:var(--color-muted);">Жарык шоу, музыкалык аппаратура, чоң LED-экран, микрофондор</small>', en: '<strong>Stage Tech & LED Wall ($650 / ~56,550 KGS)</strong><br><small style="color:var(--color-muted);">Stage lighting, concert sound, giant LED screen, wireless mics & engineer</small>' },
+      { sel: '.extras-list .extra-item:nth-child(2) span', html: true, ky: '<strong>Ашпозчунун кызматы: камыр кесүү (2 000 с.)</strong><br><small style="color:var(--color-muted);">Бешбармак үчүн үй камырын жаюу, кесүү жана бышыруу</small>', en: '<strong>Chef Service: Beshbarmak Noodles (2,000 KGS)</strong><br><small style="color:var(--color-muted);">Freshly rolled, hand-cut, and boiled traditional noodles</small>' },
+      { sel: '.extras-list .extra-item:nth-child(3) span', html: true, ky: '<strong>Жемиштерди кесүү (300 с. / стол)</strong><br><small style="color:var(--color-muted);">Ашпозчу тарабынан жемиштерди кооздоп кесүү (карвинг)</small>', en: '<strong>Fruit Carving & Plating (300 KGS / table)</strong><br><small style="color:var(--color-muted);">Artistic fruit slicing and table presentation by our chef</small>' },
+      { sel: '.extras-list .extra-item:nth-child(4) span', html: true, ky: '<strong>Этно-фуршет (35 000 с. / 15 киши)</strong><br><small style="color:var(--color-muted);">Самса, каймак менен боорсок, каттама, чак-чак, максым, жарма</small>', en: '<strong>Ethno Welcome Buffet (35,000 KGS / 15+ guests)</strong><br><small style="color:var(--color-muted);">Samsa, hot boorsoks with kaymak, kattama, chak-chak, maksym & jarma</small>' },
+      // ПРАВАЯ КОЛОНКА СМЕТЫ
+      { sel: '.estimate-sticky > span', ky: 'Monte Verde жалпы сметасы', en: 'Monte Verde Total Estimate' },
+      { sel: '.estimate-sticky .est-line:nth-of-type(1) span', ky: '1 столдун баасы (12 конок):', en: 'Cost per 1 table (12 guests):' },
+      { sel: '.estimate-sticky .est-line:nth-of-type(2) span', ky: 'Столдордун / коноктордун саны:', en: 'Number of tables / guests:' },
+      { sel: '.estimate-sticky .est-line:nth-of-type(3) span', ky: 'Бардык столдорго меню суммасы:', en: 'Total menu cost for all tables:' },
+      { sel: '.estimate-sticky .est-line:nth-of-type(4) span', ky: 'Кошумча кызматтар (аппаратура, ашпозчу):', en: 'Extra services (AV tech, chef):' },
+      { sel: '.est-payment-steps > div:first-child', ky: 'Келишим боюнча төлөө графиги:', en: 'Contract Payment Schedule:' },
+      { sel: '.est-payment-steps > div:nth-child(2) span', ky: '1. Залды брондоо (10%):', en: '1. Venue Booking (10%):' },
+      { sel: '.est-payment-steps > div:nth-child(3) span', ky: '2. Менюдан кийинки задаток (30%):', en: '2. Menu Deposit (30%):' },
+      { sel: '.est-payment-steps > div:nth-child(4) span', ky: '3. Калган сумма (60%):', en: '3. Final Balance (60%):' },
+      { sel: '.estimate-sticky button:nth-child(1)', ky: '📄 Келишим-смета бланкын ачуу (Басып чыгаруу / PDF)', en: '📄 Open Official Estimate Sheet (Print / PDF)' },
+      { sel: '.estimate-sticky button:nth-child(2)', ky: '📲 Бул сметаны WhatsApp аркылуу жөнөтүү', en: '📲 Send Estimate to Manager via WhatsApp' },
+      // ГАЛЕРЕЯ ЗАЛОВ
+      { sel: '#halls .gallery-header .section-badge', ky: 'Архитектура & Жарык', en: 'Architecture & Lighting' },
+      { sel: '#halls h2.section-title', html: true, ky: '<span class="initial-letter">M</span>onte Verde залдары', en: '<span class="initial-letter">M</span>onte Verde Spaces' },
+      { sel: '#hallTabs button:nth-child(1)', ky: 'Grand Hall (350 конокко чейин)', en: 'Grand Hall (up to 350 guests)' },
+      { sel: '#hallTabs button:nth-child(2)', ky: 'Кичи VIP-зал (80 конокко чейин)', en: 'VIP Hall (up to 80 guests)' },
+      { sel: '#hallTabs button:nth-child(3)', ky: 'Этно & Welcome-фуршет', en: 'Ethno & Welcome Buffet' },
+      { sel: '#hallTabs button:nth-child(4)', ky: 'LED-экран жана Үн ($650)', en: 'LED Screen & Sound ($650)' },
+      { sel: '.gallery-specs .spec-box:nth-child(1) span', ky: 'Сыйымдуулугу', en: 'Capacity' },
+      { sel: '.gallery-specs .spec-box:nth-child(2) span', ky: 'Шоу менен депозит', en: 'Show Deposit' },
+      { sel: '.gallery-specs .spec-box:nth-child(3) span', ky: 'Аппаратура', en: 'AV Equipment' },
+      { sel: '.gallery-specs .spec-box:nth-child(4) span', ky: 'Тойго бонус', en: 'Wedding Bonus' },
+      { sel: '.gallery-details > button', ky: 'Залдын отургузуу схемасын суроо', en: 'Request Hall Seating Plan' },
+      // УСЛОВИЯ (#control)
+      { sel: '.floating-lead-card > div:first-child', ky: 'Сиздин тойго ылайык план жана смета алыңыз', en: 'Get a Custom Event Plan & Quote' },
+      { sel: '.floating-lead-card > p', ky: 'Номериңизди калтырыңыз — менеджерлер 15 мүнөттүн ичинде байланышат', en: 'Leave your phone number — our banquet managers will contact you within 15 minutes' },
+      { sel: '.lead-input-row button', ky: 'Эсептөөнү алуу', en: 'Get Quote' },
+      { sel: '#control .control-info-box .section-badge', ky: 'Ачык-айкын шарттар • 100% Халал', en: 'Transparent Rules • 100% Halal' },
+      { sel: '#control h2.section-title', html: true, ky: '<span class="initial-letter">Т</span>ой толук <br>көзөмөлдө', en: '<span class="initial-letter">E</span>very Detail <br>Under Control' },
+      { sel: '#control .control-info-box > div:first-child > p', ky: 'Биринчи жолугушуудан акыркы конокко чейин', en: 'From First Consultation to the Last Guest' },
+      { sel: '#control .features-list .feature-item:nth-child(1) strong', ky: '100% Халал ашкана + Өз суусундуктары жана торт акысыз', en: '100% Halal Kitchen + Bring Your Own Drinks & Cake (0 KGS Corkage)' },
+      { sel: '#control .features-list .feature-item:nth-child(1) span', ky: 'Бардык эт тамактары 100% Халал стандартына жооп берет. Өз суусундуктарыңызды, жемиштерди жана майрамдык тортту кошумча төлөмсүз алып келсеңиз болот.', en: 'Strict Halal certification for all meats. Bring your own beverages, fruits, and wedding cake with zero corkage fee.' },
+      { sel: '#control .features-list .feature-item:nth-child(2) strong', ky: 'Ыңгайлуу бөлүп төлөө (10% / 30% / 100%)', en: 'Flexible Staged Payment (10% / 30% / 100%)' },
+      { sel: '#control .features-list .feature-item:nth-child(2) span', ky: '10% — күндү брондоо, 30% — меню бекитилгенден кийинки задаток (тойго кеминде 1 жума калганда).', en: '10% to lock your date, 30% deposit upon menu confirmation (at least 1 week prior to the event).' },
+      { sel: '#control .features-list .feature-item:nth-child(3) strong', ky: 'Жокко чыгаруу жана конок санын өзгөртүүнүн таза эрежелери', en: 'Fair Cancellation & Guest Count Adjustment' },
+      { sel: '#control .features-list .feature-item:nth-child(3) span', ky: '30 күндөн эрте баш тартылса, алдын ала төлөм 100% кайтарылат. Коноктордун санын тойго 3 күн калганга чейин тактаса болот.', en: '100% refund if canceled 30+ days in advance. Guest count can be adjusted up to 3 days before the event.' },
+      { sel: '#control .features-list .feature-item:nth-child(4) strong', ky: 'Залдагы толук аппаратура комплектиси (56 550 сом / $650)', en: 'Full Stage Lighting, Sound & LED Wall (56,550 KGS / $650)' },
+      { sel: '#control .features-list .feature-item:nth-child(4) span', ky: 'Сахна жарыгы, музыкалык аппаратура, чоң LED-экран, радиомикрофондор жана толук техникалык коштоо.', en: 'Concert lighting, sound system, large LED wall, wireless microphones, and dedicated technical crew.' },
+      // БОНУСЫ (#bonuses)
+      { sel: '#bonuses .section-badge', ky: 'Monte Verde белектери', en: 'Gifts from Monte Verde' },
+      { sel: '#bonuses h2.section-title', html: true, ky: '<span class="initial-letter">1</span>00+ конокко бонустар', en: '<span class="initial-letter">B</span>onuses for 100+ Guests' },
+      { sel: '#bonuses .container > div:first-child > p', ky: '100 жана андан көп конокко банкет буюртма кылганда, ар бир той форматы келишимде бекитилген белекке ээ болот:', en: 'Book a banquet for 100 or more guests and receive a guaranteed contract gift tailored to your celebration:' },
+      { sel: '#bonuses .bonus-card:nth-child(1) .bonus-tag', ky: '1. Үйлөнүү той', en: '1. Weddings' },
+      { sel: '#bonuses .bonus-card:nth-child(1) h3', ky: 'Эртең мененки тамагы менен номер', en: 'Luxury Bridal Suite with Breakfast' },
+      { sel: '#bonuses .bonus-card:nth-child(1) p', ky: 'Жаш жубайлар үчүн эртең мененки тамагы кошулган люкс мейманкана номери (15 000 сом ордуна 0 сом).', en: 'Complimentary hotel suite for the newlyweds including morning breakfast (0 KGS instead of 15,000 KGS).' },
+      { sel: '#bonuses .bonus-card:nth-child(2) .bonus-tag', ky: '2. Тушоо той, 1 жаш', en: '2. Tushoo Toi & 1st Birthday' },
+      { sel: '#bonuses .bonus-card:nth-child(2) h3', ky: '«Эль студио» аниматорлору', en: '“El Studio” Kids Animators' },
+      { sel: '#bonuses .bonus-card:nth-child(2) p', ky: 'Кичинекей коноктор үчүн «Эль студио» компаниясынын кесипкөй аниматорлор тобу белекке.', en: 'Professional children’s entertainment team from “El Studio” included as a free gift.' },
+      { sel: '#bonuses .bonus-card:nth-child(3) .bonus-tag', ky: '3. Юбилей', en: '3. Anniversary' },
+      { sel: '#bonuses .bonus-card:nth-child(3) h3', ky: 'Fun-Time реквизити', en: 'Interactive Fun-Time Props' },
+      { sel: '#bonuses .bonus-card:nth-child(3) p', ky: 'Шоу-программа, сынактар жана куттуктоолор үчүн интерактивдүү реквизиттер.', en: 'Vibrant interactive show props for games, toasts, and guest entertainment.' },
+      { sel: '#bonuses .bonus-card:nth-child(4) .bonus-tag', ky: '4. Кыз узатуу', en: '4. Kyz Uzatuu' },
+      { sel: '#bonuses .bonus-card:nth-child(4) h3', ky: 'Кыз чыгаруу шоусу', en: 'Bride Entrance Special Effects' },
+      { sel: '#bonuses .bonus-card:nth-child(4) p', ky: 'Келиндин биринчи чыгуусун коштоо: оор сахна түтүнү + самын көбүкчөлөр генератору.', en: 'Magical first entrance for the bride featuring heavy low-lying fog and bubble machines.' },
+      { sel: '#bonuses .bonus-card:nth-child(5) .bonus-tag', ky: '5. Бүтүрүү кечеси', en: '5. Graduation Gala' },
+      { sel: '#bonuses .bonus-card:nth-child(5) h3', ky: 'Fun-Time реквизити', en: 'Graduation Fun-Time Props' },
+      { sel: '#bonuses .bonus-card:nth-child(5) p', ky: 'Жаркын бүтүрүү кечеси үчүн интерактивдүү реквизиттердин атайын пакети.', en: 'Special interactive prop package for an unforgettable graduation night.' },
+      // ФУТЕР
+      { sel: '#contacts .footer-grid > div:nth-child(1) p', ky: 'Премиум-класстагы салтанат залы (100% Халал). Бишкекте үйлөнүү той, Кыз узатуу, юбилей, Тушоо той жана банкеттер.', en: 'Premium 100% Halal banquet venue in Bishkek for weddings, Kyz Uzatuu, anniversaries, and galas.' },
+      { sel: '#contacts .footer-grid > div:nth-child(2) > div:first-child', ky: 'Дарек', en: 'Address' },
+      { sel: '#contacts .footer-grid > div:nth-child(2) > p:nth-of-type(1)', ky: 'Бишкек ш., Чыңгыз Айтматов пр.', en: 'Bishkek, Chingiz Aitmatov Ave' },
+      { sel: '#contacts .footer-grid > div:nth-child(2) > p:nth-of-type(2)', ky: '(Jannat мейманканасынын имаратында)', en: '(inside Jannat Hotel)' },
+      { sel: '#contacts .footer-grid > div:nth-child(2) > p:nth-of-type(3)', ky: 'Күн сайын: 10:00 – 22:30', en: 'Daily: 10:00 – 22:30' },
+      { sel: '#contacts .footer-grid > div:nth-child(3) > div:first-child', ky: 'Банкет бөлүмү', en: 'Banquet Department' },
+      { sel: '#contacts .footer-grid > div:nth-child(4) > div:first-child', ky: 'Документтер', en: 'Documents' },
+      { sel: '#contacts .footer-grid > div:nth-child(4) button', ky: 'Смета бланкын ачуу', en: 'Open Estimate Sheet' }
+    ];
+
+    // Сохраняем исходный русский текст для каждого селектора
+    DOM_TRANSLATIONS.forEach(item => {
+      const el = document.querySelector(item.sel);
+      if (el) {
+        item.ru = item.html ? el.innerHTML : el.textContent;
+      }
+    });
+
+    // Добавляем переводы бонусов в атрибуты пиллов
+    const pillTranslations = [
+      { ky: 'Жаш жубайлар үчүн эртең мененки тамагы менен номер', en: 'Luxury Bridal Suite with Breakfast' },
+      { ky: 'Кыз чыгаруу (оор түтүн + көбүкчөлөр)', en: 'Bride Entrance (Heavy Fog + Bubbles)' },
+      { ky: 'Интерактивдүү Fun-Time реквизити', en: 'Interactive Fun-Time Props' },
+      { ky: '«Эль студио» аниматорлору', en: '“El Studio” Kids Animators' },
+      { ky: 'Майрамдык Fun-Time реквизити', en: 'Festive Fun-Time Props' }
+    ];
+    document.querySelectorAll('#eventPills .event-pill').forEach((p, idx) => {
+      if (pillTranslations[idx]) {
+        p.setAttribute('data-bonus-ky', pillTranslations[idx].ky);
+        p.setAttribute('data-bonus-en', pillTranslations[idx].en);
+      }
+    });
+
+    function setLanguage(lang) {
+      if (!I18N_UI[lang]) return;
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      document.title = I18N_UI[lang].docTitle;
+
+      // Обновляем активную кнопку КЫР / РУС / ENG
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
+
+      // Переводим статические элементы DOM
+      DOM_TRANSLATIONS.forEach(item => {
+        const el = document.querySelector(item.sel);
+        if (!el || item[lang] === undefined) return;
+        if (item.html) el.innerHTML = item[lang];
+        else el.textContent = item[lang];
+      });
+
+      // Обновляем кнопку звука на видео
+      const video = document.getElementById('heroVideo');
+      const soundBtn = document.getElementById('heroSoundBtn');
+      if (video && soundBtn) {
+        soundBtn.innerHTML = video.muted ? I18N_UI[lang].soundMuted : I18N_UI[lang].soundUnmuted;
+      }
+
+      // Перерисовываем каталог блюд, селекты конструктора, смету и галерею залов
+      renderMenuCategory(currentMenuCategory);
+      initConstructorSelects(true);
+      recalcContract();
+      selectHall(currentHallIdx);
+
+      try { localStorage.setItem('mv_lang', lang); } catch (e) {}
     }
 
     // Инициализация каталога и конструктора при старте
     renderMenuCategory('sets');
-    initConstructorSelects();
+    initConstructorSelects(false);
     recalcContract();
+    try {
+      const savedLang = localStorage.getItem('mv_lang');
+      if (savedLang && I18N_UI[savedLang] && savedLang !== 'ru') {
+        setLanguage(savedLang);
+      }
+    } catch (e) {}
   </script>
 </body>
 </html>
